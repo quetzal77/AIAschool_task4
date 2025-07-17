@@ -7,9 +7,10 @@ from config import AZURE_OPENAI_DEPLOYMENT_NAME
 
 # Define the RAG pipeline
 class RAGPipeline:
-    def __init__(self, web_page_content):
+    def __init__(self, text_data, table_data):
         self.retriever = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight Sentence-BERT model
-        self.web_page_content = web_page_content
+        self.text_data = text_data
+        self.table_data = table_data
         self.embeddings = self.convert_web_content_to_embeddings()
         self.index = self.index_embeddings()
 
