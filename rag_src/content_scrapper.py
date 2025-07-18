@@ -4,7 +4,7 @@ from urllib.parse import urljoin
 import requests
 import os
 import pandas as pd
-import lxml
+from io import StringIO
 from bs4 import BeautifulSoup
 
 
@@ -35,12 +35,12 @@ def extract_text(soup):
 # Extract all tables
 def extract_tables(soup):
     tables = []
-    # for table in soup.find_all("table"):
-    #     rows = []
-    #     for row in table.find_all("tr"):
-    #         cells = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
-    #         rows.append(cells)
-    #     tables.append(rows)
+    for table in soup.find_all("table"):
+        rows = []
+        for row in table.find_all("tr"):
+            cells = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
+            rows.append(cells)
+        tables.append(rows)
 
     # for table in soup.find_all("table"):
     #     rows = []
@@ -50,9 +50,9 @@ def extract_tables(soup):
     #     df = pd.DataFrame(rows)
     #     tables.append(df)
 
-    for table in soup.find_all("table"):
-        df = pd.read_html(str(table))[0]  # Convert HTML table to Pandas DataFrame
-        tables.append(df)
+    # for table in soup.find_all("table"):
+    #     df = pd.read_html(StringIO(str(table)))[0]  # Convert HTML table to Pandas DataFrame
+    #     tables.append(df)
 
     return tables
 

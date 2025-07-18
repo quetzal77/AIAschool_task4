@@ -1,4 +1,4 @@
-from rag_src.html_parser import scrape_aspx_page, extract_content_from_html
+from rag_src.html_parser import extract_content_from_html
 from rag_src.rag_tool import RAGPipeline
 from rag_src.content_scrapper import scrape_web_pages
 
@@ -14,7 +14,7 @@ html = extract_content_from_html(path)
 text_data, table_data, metadata = scrape_web_pages(html, url)
 
 # User query
-query = "What is Revenue growth as reported by EPAM"
+query = "What is Cost of revenues (exclusive of depreciation and amortization)"
 
 # Instantiate RAG pipeline
 rag_pipeline = RAGPipeline(text_data, table_data, metadata)

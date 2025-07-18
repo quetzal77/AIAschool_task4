@@ -31,17 +31,57 @@ class RAGPipeline:
 
         # Generate embeddings for text data
         for i, chunk in enumerate(self.text_data):
-            embedding = embedding_model.encode(chunk)  # Generate embedding
-            self.faiss_index.add(np.array([embedding]))  # Add embedding to FAISS index
+            text_embedding = embedding_model.encode(chunk)  # Generate embedding
+            self.faiss_index.add(np.array([text_embedding]))  # Add embedding to FAISS index
             self.metadata_store.append({"type": "text", "source_url": self.url, "chunk_index": i, "content": chunk})
+
+        # # Generate embeddings for table data - doesnt work as we have to break table string to chunks
+        # for i, table in enumerate(self.table_data):
+        #     # Convert the table to a string representation
+        #     # table_str = table.to_string(index=False, header=True) # doesnt work with pandas lib, need time to understand why
+        #     table_str = "\n".join(["\t".join(row) for row in table])  # Join rows with tabs and rows with newlines
+        #     table_embedding = embedding_model.encode(table_str)  # Generate embedding
+        #     self.faiss_index.add(np.array([table_embedding]))  # Add embedding to FAISS index
+        #     self.metadata_store.append({"type": "table", "source_url": self.url, "table_index": i, "content": table_str})
+
+        # print("Extracted Table Data:")
+        # for i, table in enumerate(self.table_data):
+        #     print(f"Table {i}:")
+        #     for row in table:
+        #         print(row)
 
         # Generate embeddings for table data
         for i, table in enumerate(self.table_data):
-            # Convert the table to a string representation
-            table_str = table.to_string(index=False, header=True)
-            embedding = embedding_model.encode(table_str)  # Generate embedding
-            self.faiss_index.add(np.array([embedding]))  # Add embedding to FAISS index
-            self.metadata_store.append({"type": "table", "source_url": self.url, "table_index": i, "content": table_str})
+            # print(f"Processing Table {i}")
+
+            # Extract the column headers (if available)
+            column_headers = None
+            if len(table) > 0:
+                column_headers = "\t".join(table[0])  # First row as headers
+                # print(f"Table {i} Headers: {column_headers}")
+
+            # Process each row in the table
+            for row_index, row in enumerate(table):
+                if not row or all(cell.strip() == "" for cell in row):  # Skip empty rows
+                    continue
+
+                # Combine headers with data for better context (if headers exist)
+                row_str = "\t".join(row)
+                if column_headers and row_index > 0:  # Skip headers themselves
+                    row_str = f"{column_headers}\n{row_str}"
+
+                # print(f"Table {i}, Row {row_index}: {row_str}")
+
+                # Generate embedding for the row
+                row_embedding = embedding_model.encode(row_str)
+                self.faiss_index.add(np.array([row_embedding]))
+                self.metadata_store.append({
+                    "type": "table_row",
+                    "source_url": self.url,
+                    "table_index": i,
+                    "row_index": row_index,
+                    "content": row_str
+                })
 
         print(f"Data from {self.url} has been processed and stored in the FAISS index.")
 
