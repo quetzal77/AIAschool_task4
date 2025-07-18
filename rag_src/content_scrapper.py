@@ -4,6 +4,7 @@ from urllib.parse import urljoin
 import requests
 import os
 import pandas as pd
+import lxml
 from bs4 import BeautifulSoup
 
 
@@ -17,7 +18,10 @@ def scrape_web_pages(html_page, url):
     table_data = extract_tables(soup)
     # image_data = extract_images(soup, url)
 
-    return text_data, table_data
+    # Additional metadata
+    metadata = {"source_url": url}
+
+    return text_data, table_data, metadata
 
 
 # Extract all visible text
@@ -37,6 +41,14 @@ def extract_tables(soup):
     #         cells = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
     #         rows.append(cells)
     #     tables.append(rows)
+
+    # for table in soup.find_all("table"):
+    #     rows = []
+    #     for row in table.find_all("tr"):
+    #         cells = [cell.get_text(strip=True) for cell in row.find_all(["td", "th"])]
+    #         rows.append(cells)
+    #     df = pd.DataFrame(rows)
+    #     tables.append(df)
 
     for table in soup.find_all("table"):
         df = pd.read_html(str(table))[0]  # Convert HTML table to Pandas DataFrame

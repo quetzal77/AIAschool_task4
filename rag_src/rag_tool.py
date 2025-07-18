@@ -1,84 +1,117 @@
 # Encode the corpus into embeddings
+import pickle
+
 import faiss
+import numpy as np
 import openai
 from sentence_transformers import SentenceTransformer
 
 from config import AZURE_OPENAI_DEPLOYMENT_NAME
 
+# Initialize the embedding model using SentenceTransformers
+embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
+
+# Initialize FAISS index
+def initialize_faiss_index():
+    embedding_dimension = embedding_model.get_sentence_embedding_dimension()
+    faiss_index = faiss.IndexFlatL2(embedding_dimension)  # Use L2 distance
+    return faiss_index
+
 # Define the RAG pipeline
 class RAGPipeline:
-    def __init__(self, text_data, table_data):
-        self.retriever = SentenceTransformer('all-MiniLM-L6-v2')  # Lightweight Sentence-BERT model
+    def __init__(self, text_data, table_data, metadata):
         self.text_data = text_data
         self.table_data = table_data
-        self.embeddings = self.convert_web_content_to_embeddings()
-        self.index = self.index_embeddings()
+        self.url = metadata["source_url"]
+        self. metadata_store = []
+        self.faiss_index = initialize_faiss_index()
 
-    # Encode the corpus into embeddings
-    def convert_web_content_to_embeddings(self):
-        embeddings = self.retriever.encode(self.web_page_content, convert_to_tensor=False)
-        return embeddings
+    # Step 4: Generate embeddings and store in FAISS
+    def process_and_store_data(self):
 
-    # Index the embeddings using FAISS
-    def index_embeddings(self):
-        dimension = self.embeddings.shape[1]
-        index = faiss.IndexFlatL2(dimension)
-        index.add(self.embeddings)
-        return index
+        # Generate embeddings for text data
+        for i, chunk in enumerate(self.text_data):
+            embedding = embedding_model.encode(chunk)  # Generate embedding
+            self.faiss_index.add(np.array([embedding]))  # Add embedding to FAISS index
+            self.metadata_store.append({"type": "text", "source_url": self.url, "chunk_index": i, "content": chunk})
 
-    def retrieve(self, query, top_k=3):
-        """
-        Retrieve top-k most relevant documents from the web_page_content using FAISS.
-        """
-        query_embedding = self.retriever.encode(query, convert_to_tensor=False)
-        distances, indices = self.index.search(query_embedding.reshape(1, -1), top_k)
-        retrieved_docs = [self.web_page_content[idx] for idx in indices[0]]
+        # Generate embeddings for table data
+        for i, table in enumerate(self.table_data):
+            # Convert the table to a string representation
+            table_str = table.to_string(index=False, header=True)
+            embedding = embedding_model.encode(table_str)  # Generate embedding
+            self.faiss_index.add(np.array([embedding]))  # Add embedding to FAISS index
+            self.metadata_store.append({"type": "table", "source_url": self.url, "table_index": i, "content": table_str})
 
-        # Deduplicate the documents
-        unique_docs = []
-        seen = set()
-        for doc in retrieved_docs:
-            if doc not in seen:
-                unique_docs.append(doc)
-                seen.add(doc)
+        print(f"Data from {self.url} has been processed and stored in the FAISS index.")
 
-        return unique_docs[:top_k]
+    # Retrieve top-k most relevant documents
+    def retrieve_faiss_index(self, query, top_k=5):
 
-    @staticmethod
-    def generate(query, retrieved_docs):
-        """
-        Generate an answer using Azure OpenAI, given the query and retrieved documents.
-        """
-        context = "\n".join(retrieved_docs)  # Combine retrieved documents as context
-        prompt = f"""
-        You are a expert in flight assistance. Use the following context to answer the question:
+        # Generate embedding for the query
+        query_embedding = embedding_model.encode(query).reshape(1, -1)
 
-        Context:
-        {context}
+        # Perform similarity search
+        distances, indices = self.faiss_index.search(query_embedding, top_k)
 
-        Question:
-        {query}
+        # Retrieve metadata for the top results
+        results = []
+        for idx, dist in zip(indices[0], distances[0]):
+            if idx >= 0:  # Ensure valid index
+                result = self.metadata_store[idx]
+                result["distance"] = dist
+                results.append(result)
 
-        Answer:
-        """
-        response = openai.ChatCompletion.create(
-            engine=AZURE_OPENAI_DEPLOYMENT_NAME,
-            messages=[
-                {"role": "system", "content": "You are an expert assistant."},
-                {"role": "user", "content": prompt},
-            ],
-            max_tokens=4200,
-            temperature=0.7,
-        )
-        return response['choices'][0]['message']['content'].strip()
+        return results
+
+    # Save and Load FAISS Index and Metadata (optional, potentially can use it later)
+    def save_faiss_index(self, index_file="faiss_index.bin", metadata_file="metadata.pkl"):
+        faiss.write_index(self.faiss_index, index_file)
+        with open(metadata_file, "wb") as f:
+            pickle.dump(self.metadata_store, f)
+        print("FAISS index and metadata have been saved.")
+
+    def load_faiss_index(self, index_file="faiss_index.bin", metadata_file="metadata.pkl"):
+        self.faiss_index = faiss.read_index(index_file)
+        with open(metadata_file, "rb") as f:
+            self.metadata_store = pickle.load(f)
+        print("FAISS index and metadata have been loaded.")
+
+    # @staticmethod
+    # def generate(query, retrieved_docs):
+    #     """
+    #     Generate an answer using Azure OpenAI, given the query and retrieved documents.
+    #     """
+    #     context = "\n".join(retrieved_docs)  # Combine retrieved documents as context
+    #     prompt = f"""
+    #     You are a expert in flight assistance. Use the following context to answer the question:
+    #
+    #     Context:
+    #     {context}
+    #
+    #     Question:
+    #     {query}
+    #
+    #     Answer:
+    #     """
+    #     response = openai.ChatCompletion.create(
+    #         engine=AZURE_OPENAI_DEPLOYMENT_NAME,
+    #         messages=[
+    #             {"role": "system", "content": "You are an expert assistant."},
+    #             {"role": "user", "content": prompt},
+    #         ],
+    #         max_tokens=4200,
+    #         temperature=0.7,
+    #     )
+    #     return response['choices'][0]['message']['content'].strip()
 
     def __call__(self, query, top_k=3):
         """
         End-to-end RAG pipeline: retrieve information and generate an answer.
         """
-        retrieved_docs = self.retrieve(query, top_k=top_k)
+        retrieved_docs = self.retrieve_faiss_index(query, top_k=top_k)
         if not retrieved_docs:
             return {"query": query, "retrieved_docs": [], "answer": "No relevant information found."}
 
-        answer = self.generate(query, retrieved_docs)
+        # answer = self.generate(query, retrieved_docs)
         return {"query": query, "retrieved_docs": retrieved_docs, "answer": answer}

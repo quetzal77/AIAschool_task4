@@ -11,22 +11,17 @@ path = "../datasources/EPAM Systems, Inc. - EPAM Reports Results for Fourth Quar
 # Web page content retrieval
 # html = scrape_aspx_page(url) # doest work because EPAM aspx page protected from online attacks
 html = extract_content_from_html(path)
-web_page_content = scrape_web_pages(html, url)
+text_data, table_data, metadata = scrape_web_pages(html, url)
 
 # User query
-query = "What is a maximum dimensions of language in centimeters?"
+query = "What is Revenue growth as reported by EPAM"
 
 # Instantiate RAG pipeline
-rag_pipeline = RAGPipeline(web_page_content = web_page_content)
+rag_pipeline = RAGPipeline(text_data, table_data, metadata)
 
 # Generate LLM answer
-answer = rag_pipeline(query, top_k=3)
+results = rag_pipeline(query)
 
-# Print the results
-print("Query:", answer['query'])
-
-print("Retrieved Documents:")
-for i, doc in enumerate(answer['retrieved_docs']):
-     print(f"[{i+1}] {doc[:300]}...")  # Show the first 300 characters of each document
-
-print("\nGenerated Answer:", answer['answer'])
+print("Query Results:")
+for result in results:
+     print(result)
