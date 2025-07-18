@@ -22,6 +22,8 @@ rag_pipeline = RAGPipeline(text_data, table_data, metadata)
 # Generate LLM answer
 results = rag_pipeline(query)
 
+print("Query Info:", results["query"])
+
 print("Query Results:")
-for result in results:
+for result in results["retrieved_docs"]:
      print(result)

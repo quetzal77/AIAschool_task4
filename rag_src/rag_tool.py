@@ -109,9 +109,11 @@ class RAGPipeline:
         """
         End-to-end RAG pipeline: retrieve information and generate an answer.
         """
+        self.process_and_store_data()
         retrieved_docs = self.retrieve_faiss_index(query, top_k=top_k)
         if not retrieved_docs:
             return {"query": query, "retrieved_docs": [], "answer": "No relevant information found."}
 
         # answer = self.generate(query, retrieved_docs)
-        return {"query": query, "retrieved_docs": retrieved_docs, "answer": answer}
+        # return {"query": query, "retrieved_docs": retrieved_docs, "answer": answer}
+        return {"query": query, "retrieved_docs": retrieved_docs}
