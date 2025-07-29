@@ -19,6 +19,23 @@ def initialize_faiss_index():
     return faiss_index
 
 # Define the RAG pipeline
+def filter_rows(table):
+    """
+    Filters rows in the table:
+    1. Removes empty rows.
+    2. Keeps rows where the first cell is empty but the row has more than one element.
+    """
+    filtered_rows = []
+    for row in table:
+        if not row or all(cell.strip() == "" for cell in row):
+            continue  # Skip completely empty rows
+        if row[0].strip() == "" and len(row) > 1:  # Keep rows with empty first cell but multiple elements
+            filtered_rows.append(row)
+        elif any(cell.strip() != "" for cell in row):  # Keep rows with at least one non-empty cell
+            filtered_rows.append(row)
+    return filtered_rows
+
+
 class RAGPipeline:
     def __init__(self):
         self.text_data = []
@@ -36,7 +53,7 @@ class RAGPipeline:
             self.text_data, self.table_data, self.metadata = scrape_web_pages(html)
 
             # Log success
-            print("Data extraction and processing completed successfully.")
+            # print("Data extraction and processing completed successfully.")
         except Exception as e:
             print(f"An error occurred during data extraction and processing: {e}")
             raise
@@ -47,7 +64,7 @@ class RAGPipeline:
         for i, chunk in enumerate(self.text_data):
             text_embedding = embedding_model.encode(chunk)  # Generate embedding
             self.faiss_index.add(np.array([text_embedding]))  # Add embedding to FAISS index
-            self.metadata_store.append({"type": "text", "source_url": self.url, "chunk_index": i, "content": chunk})
+            self.metadata_store.append({"type": "text", "chunk_index": i, "content": chunk})
 
         # # Generate embeddings for table data - doesnt work as we have to break table string to chunks
         # for i, table in enumerate(self.table_data):
@@ -66,32 +83,49 @@ class RAGPipeline:
 
         # Generate embeddings for table data
         for i, table in enumerate(self.table_data):
-            # print(f"Processing Table {i}")
 
-            # Extract the column headers (if available)
-            column_headers = None
-            if len(table) > 0:
-                column_headers = "\t".join(table[0])  # First row as headers
-                # print(f"Table {i} Headers: {column_headers}")
+            """
+            Separates header rows (rows with a single element) from table data rows.
+            """
+            table_headers = []
+            table_rows = []
+
+            for row in table:
+                if len(row) == 1:  # Identify header rows (rows with a single element)
+                    table_headers.append(row[0])  # Collect the single element as a header
+                elif len(row) > 1:  # Identify table data rows (rows with multiple elements)
+                    table_rows.append(row)
+
+            #     Filters rows in the table:
+            #     1. Removes empty rows.
+            #     2. Keeps rows where the first cell is empty but the row has more than one element.
+            table_rows = filter_rows(table_rows)
 
             # Process each row in the table
-            for row_index, row in enumerate(table):
-                if not row or all(cell.strip() == "" for cell in row):  # Skip empty rows
-                    continue
-
-                # Combine headers with data for better context (if headers exist)
-                row_str = "\t".join(row)
-                if column_headers and row_index > 0:  # Skip headers themselves
-                    row_str = f"{column_headers}\n{row_str}"
-
-                # print(f"Table {i}, Row {row_index}: {row_str}")
-
+            for row_index, row in enumerate(table_headers):
+                row_str = "".join(row)
                 # Generate embedding for the row
-                row_embedding = embedding_model.encode(row_str)
-                self.faiss_index.add(np.array([row_embedding]))
+                self.faiss_index.add(
+                    np.array(
+                        [embedding_model.encode(row_str)]
+                ))
+                self.metadata_store.append({
+                    "type": "table_header",
+                    "table_index": i,
+                    "row_index": row_index,
+                    "content": row_str
+                })
+
+            # Process each row in the table
+            for row_index, row in enumerate(table_rows):
+                row_str = "\t".join(row)
+                # Generate embedding for the row
+                self.faiss_index.add(
+                    np.array(
+                        [embedding_model.encode(row_str)]
+                ))
                 self.metadata_store.append({
                     "type": "table_row",
-                    "source_url": self.url,
                     "table_index": i,
                     "row_index": row_index,
                     "content": row_str
@@ -135,6 +169,7 @@ class RAGPipeline:
         """
         End-to-end RAG pipeline: retrieve information and generate an answer.
         """
+        self._extract_and_process_data()
         self.process_and_store_data()
         retrieved_docs = self.retrieve_faiss_index(query, top_k=top_k)
         if not retrieved_docs:
