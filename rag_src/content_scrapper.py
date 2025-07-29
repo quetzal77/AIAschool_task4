@@ -7,8 +7,10 @@ import pandas as pd
 from io import StringIO
 from bs4 import BeautifulSoup
 
+from config import DATASOURCE_URL
 
-def scrape_web_pages(html_page, url):
+
+def scrape_web_pages(html_page):
     page_contents = []
     soup = BeautifulSoup(html_page, "html.parser")
 
@@ -16,10 +18,10 @@ def scrape_web_pages(html_page, url):
     text_data = extract_text(soup)
     page_contents.append(" ".join(text_data))
     table_data = extract_tables(soup)
-    # image_data = extract_images(soup, url)
+    # image_data = extract_images(soup, DATASOURCE_URL)
 
     # Additional metadata
-    metadata = {"source_url": url}
+    metadata = {"source_url": DATASOURCE_URL}
 
     return text_data, table_data, metadata
 

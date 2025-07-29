@@ -2,6 +2,10 @@ import openai
 
 from config import AZURE_OPENAI_DEPLOYMENT_NAME
 from prompts.developer_prompt import SYSTEM_PROMPT
+from rag_src.rag_tool import RAGPipeline
+
+# Initialize conversation history
+conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
 
 def truncate_conversation(conversation, max_tokens=4200):
     """
@@ -17,22 +21,21 @@ def truncate_conversation(conversation, max_tokens=4200):
         total_tokens += message_tokens
     return truncated_history
 
-def simulate_rag(query):
-    """
-    Simulate RAG by retrieving relevant context based on user input.
-    Replace this function with your actual RAG implementation.
-    """
-    # For example purposes, return a static context
-    if "Azure" in query:
-        return "Azure is a cloud computing platform by Microsoft that provides solutions for AI, machine learning, and more."
-    return None
+# def simulate_rag(query):
+#     """
+#     Simulate RAG by retrieving relevant context based on user input.
+#     Replace this function with your actual RAG implementation.
+#     """
+#     # For example purposes, return a static context
+#     if "dead russians in Pokrovsk" in query:
+#         return "For last 5 months on Pokrovsk directions russian losses estimated in 23,858 people"
+#     return None
 
 def chatbot_response(query, retrieved_context=None):
     """
     Generate a response from the chatbot using Azure OpenAI's GPT.
     """
-    # Initialize conversation history
-    conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
+    global conversation_history
 
     # Append the retrieved context to the conversation history if provided
     if retrieved_context:
@@ -68,8 +71,8 @@ def chatbot_response(query, retrieved_context=None):
 
 def chat():
     print("Chatbot: Hello! How can I assist you today?"
-          "Here are few commands you need to know before start:"
-          " - type exit, quit or bye to complete conversation")
+          "\nHere are few commands you need to know before start:"
+          "\n - type exit, quit or bye to complete conversation")
     while True:
         # Get user input
         query = input("You: ")
@@ -79,8 +82,11 @@ def chat():
             print("Chatbot: Goodbye! Have a great day!")
             break
 
-        # Simulate RAG by retrieving context (replace this with your actual RAG implementation)
-        retrieved_context = simulate_rag(query)
+        # Instantiate RAG pipeline
+        rag_pipeline = RAGPipeline()
+
+        # Retrieve context
+        retrieved_context = rag_pipeline(query)
 
         # Get the chatbot's response
         bot_reply = chatbot_response(query, retrieved_context)

@@ -3,10 +3,11 @@ import pickle
 
 import faiss
 import numpy as np
-import openai
 from sentence_transformers import SentenceTransformer
 
-from config import AZURE_OPENAI_DEPLOYMENT_NAME
+from config import AZURE_OPENAI_DEPLOYMENT_NAME, DATASOURCE_URL
+from rag_src.content_scrapper import scrape_web_pages
+from rag_src.html_parser import extract_content_from_html
 
 # Initialize the embedding model using SentenceTransformers
 embedding_model = SentenceTransformer('all-MiniLM-L6-v2')
@@ -19,16 +20,29 @@ def initialize_faiss_index():
 
 # Define the RAG pipeline
 class RAGPipeline:
-    def __init__(self, text_data, table_data, metadata):
-        self.text_data = text_data
-        self.table_data = table_data
-        self.url = metadata["source_url"]
+    def __init__(self):
+        self.text_data = []
+        self.table_data = []
+        self.metadata = {}
+        self.url = DATASOURCE_URL
         self. metadata_store = []
         self.faiss_index = initialize_faiss_index()
 
-    # Step 4: Generate embeddings and store in FAISS
-    def process_and_store_data(self):
+    def _extract_and_process_data(self):
+        # Extract content from the URL, scrape web pages, and process the data.
+        try:
+            # Extracting content from URL
+            html = extract_content_from_html()
+            self.text_data, self.table_data, self.metadata = scrape_web_pages(html)
 
+            # Log success
+            print("Data extraction and processing completed successfully.")
+        except Exception as e:
+            print(f"An error occurred during data extraction and processing: {e}")
+            raise
+
+    # Generate embeddings and store in FAISS
+    def process_and_store_data(self):
         # Generate embeddings for text data
         for i, chunk in enumerate(self.text_data):
             text_embedding = embedding_model.encode(chunk)  # Generate embedding
@@ -83,7 +97,7 @@ class RAGPipeline:
                     "content": row_str
                 })
 
-        print(f"Data from {self.url} has been processed and stored in the FAISS index.")
+        # print(f"Data from {self.url} has been processed and stored in the FAISS index.")
 
     # Retrieve top-k most relevant documents
     def retrieve_faiss_index(self, query, top_k=5):
@@ -116,34 +130,6 @@ class RAGPipeline:
         with open(metadata_file, "rb") as f:
             self.metadata_store = pickle.load(f)
         print("FAISS index and metadata have been loaded.")
-
-    # @staticmethod
-    # def generate(query, retrieved_docs):
-    #     """
-    #     Generate an answer using Azure OpenAI, given the query and retrieved documents.
-    #     """
-    #     context = "\n".join(retrieved_docs)  # Combine retrieved documents as context
-    #     prompt = f"""
-    #     You are a expert in flight assistance. Use the following context to answer the question:
-    #
-    #     Context:
-    #     {context}
-    #
-    #     Question:
-    #     {query}
-    #
-    #     Answer:
-    #     """
-    #     response = openai.ChatCompletion.create(
-    #         engine=AZURE_OPENAI_DEPLOYMENT_NAME,
-    #         messages=[
-    #             {"role": "system", "content": "You are an expert assistant."},
-    #             {"role": "user", "content": prompt},
-    #         ],
-    #         max_tokens=4200,
-    #         temperature=0.7,
-    #     )
-    #     return response['choices'][0]['message']['content'].strip()
 
     def __call__(self, query, top_k=3):
         """

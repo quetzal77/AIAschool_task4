@@ -5,6 +5,9 @@ from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.chrome.options import Options
 
+from config import DATASOURCE_URL, DATASOURCE_PATH
+
+
 # Setup Selenium with a headless browser
 def initialize_driver():
     chrome_options = Options()
@@ -21,9 +24,9 @@ def initialize_driver():
 
 
 # Scrape the ASPX page
-def scrape_aspx_page(url):
+def scrape_aspx_page():
     driver = initialize_driver()
-    driver.get(url)
+    driver.get(DATASOURCE_URL)
 
     # Wait for the page to load (adjust time as needed)
     driver.implicitly_wait(3)
@@ -37,14 +40,14 @@ def scrape_aspx_page(url):
     return html
 
 # Extracts text, tables, and image metadata from a local HTML file.
-def extract_content_from_html(file_path, base_url=None):
+def extract_content_from_html():
 
     # Check if the file exists
-    if not os.path.exists(file_path):
-        raise FileNotFoundError(f"File not found: {file_path}")
+    if not os.path.exists(DATASOURCE_PATH):
+        raise FileNotFoundError(f"File not found: {DATASOURCE_PATH}")
 
     # Read the HTML file
-    with open(file_path, "r", encoding="utf-8") as file:
+    with open(DATASOURCE_PATH, "r", encoding="utf-8") as file:
         html_content = file.read()
 
     return html_content
