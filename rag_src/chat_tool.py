@@ -21,16 +21,6 @@ def truncate_conversation(conversation, max_tokens=4200):
         total_tokens += message_tokens
     return truncated_history
 
-# def simulate_rag(query):
-#     """
-#     Simulate RAG by retrieving relevant context based on user input.
-#     Replace this function with your actual RAG implementation.
-#     """
-#     # For example purposes, return a static context
-#     if "dead russians in Pokrovsk" in query:
-#         return "For last 5 months on Pokrovsk directions russian losses estimated in 23,858 people"
-#     return None
-
 def chatbot_response(query, retrieved_context=None):
     """
     Generate a response from the chatbot using Azure OpenAI's GPT.
