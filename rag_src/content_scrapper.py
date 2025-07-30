@@ -25,8 +25,8 @@ def scrape_web_pages(html_page):
         table_headers.append(headers)  # Collect headers for this table
         table_rows.append(rows)  # Collect rows for this table
 
-    # Convert list of lists to list
-    table_rows = [item for sublist in table_rows for item in sublist]
+    # # Convert list of lists to list
+    # table_rows = [item for sublist in table_rows for item in sublist]
 
     # Process image data
     # image_data = extract_images(soup, DATASOURCE_URL)
