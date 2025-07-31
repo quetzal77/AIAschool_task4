@@ -2,7 +2,7 @@ import openai
 
 from config import AZURE_OPENAI_DEPLOYMENT_NAME
 from prompts.developer_prompt import SYSTEM_PROMPT
-from rag_src.rag_tool_new import RAGPipeline
+from rag_src.rag_tool_faiss import RAGPipeline
 
 # Initialize conversation history
 conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]

@@ -25,9 +25,6 @@ def scrape_web_pages(html_page):
         table_headers.append(headers)  # Collect headers for this table
         table_rows.append(rows)  # Collect rows for this table
 
-    # # Convert list of lists to list
-    # table_rows = [item for sublist in table_rows for item in sublist]
-
     # Process image data
     # image_data = extract_images(soup, DATASOURCE_URL)
 
@@ -44,7 +41,8 @@ def scrape_web_pages(html_page):
 def extract_text(soup):
     # Extract visible text from <p>, <div>, <span>, and heading tags
     text_content = [element.get_text(strip=True) for element in
-                    soup.find_all(['p', 'div', 'span', 'h1', 'h2', 'h3', 'h4'])]
+                    soup.find_all(['p', 'li', 'h1', 'h2', 'h3', 'h4'])]
+    text_content = text_content[451:511] # this is filter to remove garbage and leave only important text information
     return text_content
 
 
