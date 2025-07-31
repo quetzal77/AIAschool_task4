@@ -7,7 +7,7 @@ from rag_src.content_scrapper import scrape_web_pages
 from rag_src.html_parser import extract_content_from_html
 
 # Initialize embedding model
-model = SentenceTransformer('all-MiniLM-L6-v2')
+model = SentenceTransformer('all-mpnet-base-v2')
 
 def combine_text_and_rows_to_chunks(table_headers, table_rows):
     # Combine table headers and rows into coherent chunks
