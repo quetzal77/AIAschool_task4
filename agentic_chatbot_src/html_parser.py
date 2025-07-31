@@ -51,5 +51,3 @@ def extract_content_from_html():
         html_content = file.read()
 
     return html_content
-
-

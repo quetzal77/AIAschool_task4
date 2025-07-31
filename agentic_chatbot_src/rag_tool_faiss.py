@@ -3,8 +3,8 @@ import numpy as np
 from sentence_transformers import SentenceTransformer
 
 from config import DATASOURCE_URL
-from rag_src.content_scrapper import scrape_web_pages
-from rag_src.html_parser import extract_content_from_html
+from agentic_chatbot_src.content_scrapper import scrape_web_pages
+from agentic_chatbot_src.html_parser import extract_content_from_html
 
 # Initialize embedding model
 model = SentenceTransformer('all-mpnet-base-v2')
@@ -41,47 +41,34 @@ def index_embeddings(embedding_matrix):
     faiss.write_index(index, "vector_index.faiss")
     return index
 
-class RAGPipeline:
-    def __init__(self):
-        self.text_data = []
-        self.table_headers = []
-        self.table_rows = []
-        self.metadata = []
+# Combine text data and table chunks
+def combine_text_to_chunks(html):
+    text_data, table_headers, table_rows, metadata = scrape_web_pages(html)
+    # Combine text data and table chunks
+    table_chunks = combine_text_and_rows_to_chunks(table_headers, table_rows)
+    all_chunks = text_data + table_chunks
+    return all_chunks
 
-    def __call__(self, query):
-        """
-        End-to-end RAG pipeline: retrieve information and generate an answer.
-        """
-        # Extracting content from URL
-        html = extract_content_from_html()
-        self.text_data, self.table_headers, self.table_rows, self.metadata = scrape_web_pages(html)
+# Generate embeddings for all chunks
+def generate_embeddings(all_chunks):
+    return model.encode(all_chunks)
 
-        # Combine text data and table chunks
-        table_chunks = combine_text_and_rows_to_chunks(self.table_headers, self.table_rows)
-        all_chunks = self.text_data + table_chunks
+# Initialize FAISS index
+def create_vector_store(embeddings):
+    embedding_matrix = convert_text_to_embeddings(embeddings)
+    return index_embeddings(embedding_matrix)
 
-        # Generate embeddings for all chunks
-        embeddings = model.encode(all_chunks)
+# Initialize FAISS index
+def query_vector_store(all_chunks, index, query):
+    # Query embedding
+    query_embedding = model.encode([query])
 
-        # Convert text chunks to embeddings
-        embedding_matrix = convert_text_to_embeddings(embeddings)
+    # Perform similarity search
+    k = 5  # Number of top results to retrieve
+    distances, indices = index.search(np.array(query_embedding), k)
 
-        # Initialize FAISS index
-        index = index_embeddings(embedding_matrix)
+    # Retrieve results
+    results = [all_chunks[i] for i in indices[0]]
+    # print("Top results:", results)
 
-        # Query embedding
-        query_embedding = model.encode([query])
-
-        # Perform similarity search
-        k = 5  # Number of top results to retrieve
-        distances, indices = index.search(np.array(query_embedding), k)
-
-        # Retrieve results
-        results = [all_chunks[i] for i in indices[0]]
-        # print("Top results:", results)
-
-        return results
-
-
-
-
+    return results

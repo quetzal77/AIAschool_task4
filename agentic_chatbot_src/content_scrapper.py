@@ -4,7 +4,11 @@ import requests
 import os
 from bs4 import BeautifulSoup
 
-from config import DATASOURCE_URL
+from PIL import Image
+import pytesseract
+
+from config import DATASOURCE_URL, DATASOURCE_PATH
+
 
 # Scrape text content from the specified web pages
 def scrape_web_pages(html_page):
@@ -26,7 +30,7 @@ def scrape_web_pages(html_page):
         table_rows.append(rows)  # Collect rows for this table
 
     # Process image data
-    # image_data = extract_images(soup, DATASOURCE_URL)
+    image_data = extract_images(soup, DATASOURCE_PATH)
 
     # Additional metadata
     metadata = {
@@ -92,32 +96,33 @@ def _separate_headers_and_rows(table):
 
 # Extract all images
 def extract_images(soup, base_url):
-    images = []
+    images_metadata = []
     for img in soup.find_all("img"):
         src = img.get("src")
         alt = img.get("alt", "")
         title = img.get("title", "")
-        if src:
+        if src and src.endswith(".jpg"):  # Check if the src ends with ".jpg"
             # Convert relative URLs to absolute URLs
             absolute_url = urljoin(base_url, src)
-            images.append({"src": absolute_url, "alt": alt, "title": title})
-    return images
+            images_metadata.append({"src": absolute_url, "alt": alt, "title": title})
+
+    # images_data = convert_images_to_text(images_metadata)
+    return images_metadata
 
 
 # Download images (optional)
-def download_images(image_data, download_folder="images"):
-    if not os.path.exists(download_folder):
-        os.makedirs(download_folder)
-
-    for i, img in enumerate(image_data):
-        img_url = img["src"]
-        try:
-            response = requests.get(img_url, stream=True)
-            response.raise_for_status()
-            file_name = os.path.join(download_folder, f"image_{i + 1}.jpg")
-            with open(file_name, "wb") as f:
-                for chunk in response.iter_content(1024):
-                    f.write(chunk)
-            print(f"Downloaded: {file_name}")
-        except Exception as e:
-            print(f"Failed to download {img_url}: {e}")
+# def convert_images_to_text(image_metadata):
+#     extracted_text = {}
+#
+#     for image_data in image_metadata:
+#         # Get the path of the image from the 'src' key
+#         image_path = image_data['src']
+#         try:
+#             # Open the image using PIL
+#             img = Image.open(image_path)
+#             # Use Tesseract to extract text
+#             text = pytesseract.image_to_string(img)
+#             # Store the extracted text with the image's title as the key
+#             extracted_text[image_data['title']] = text
+#         except Exception as e:
+#             print(f"Error reading image {image_path}: {e}")
