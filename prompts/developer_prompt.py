@@ -1,8 +1,19 @@
 # System prompt that sets the behavior of the chatbot
-SYSTEM_PROMPT = (
-                 "You are a helpful and knowledgeable assistant. "
-                 "Answer the user's questions to the best of your ability. "
-                 "Context information provided to you is a primary source of true, "
-                 "read it carefully before answer user questions. "
-                 "Use conversation context to build dialog with user."
-                 )
+from langchain_core.prompts import PromptTemplate
+
+SYSTEM_PROMPT = """
+    You are a helpful assistant.
+    """
+
+# # Define the input variables for the prompt
+# SYSTEM_PROMPT = PromptTemplate(
+#     input_variables=["tool_name", "user_query", "agent_scratchpad"],
+#     template=prompt_string
+# )
+
+# SYSTEM_PROMPT = [
+#     ("system", "You are a helpful assistant"),
+#     ("placeholder", "{chat_history}"),
+#     ("human", "{input}"),
+#     ("placeholder", "{agent_scratchpad}"),
+#     ]

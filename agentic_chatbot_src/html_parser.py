@@ -1,5 +1,4 @@
 import os
-
 from selenium import webdriver
 from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
@@ -40,7 +39,7 @@ def scrape_aspx_page():
     return html
 
 # Extracts text, tables, and image metadata from a local HTML file.
-def extract_content_from_html():
+def extract_content_from_html(*args):
 
     # Check if the file exists
     if not os.path.exists(DATASOURCE_PATH):

@@ -28,7 +28,7 @@ openai.api_version = "2023-05-15"
 DATASOURCE_URL = "https://investors.epam.com/news/news-details/2025/EPAM-Reports-Results-for-Fourth-Quarter-and-Full-Year-2024/default.aspx"
 
 # Path for datasource html page stored locally
-DATASOURCE_PATH = "../datasources/EPAM Systems, Inc. - EPAM Reports Results for Fourth Quarter and Full Year 2024.html"
+DATASOURCE_PATH = "./datasources/EPAM Systems, Inc. - EPAM Reports Results for Fourth Quarter and Full Year 2024.html"
 
 
 

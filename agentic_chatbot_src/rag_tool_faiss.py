@@ -1,8 +1,6 @@
 import faiss
 import numpy as np
 from sentence_transformers import SentenceTransformer
-
-from config import DATASOURCE_URL
 from agentic_chatbot_src.content_scrapper import scrape_web_pages
 from agentic_chatbot_src.html_parser import extract_content_from_html
 
@@ -42,16 +40,13 @@ def index_embeddings(embedding_matrix):
     return index
 
 # Combine text data and table chunks
-def combine_text_to_chunks(html):
-    text_data, table_headers, table_rows, metadata = scrape_web_pages(html)
+def combine_text_to_chunks():
+    html_content = extract_content_from_html()
+    text_data, table_headers, table_rows, metadata = scrape_web_pages(html_content)
     # Combine text data and table chunks
     table_chunks = combine_text_and_rows_to_chunks(table_headers, table_rows)
     all_chunks = text_data + table_chunks
     return all_chunks
-
-# Generate embeddings for all chunks
-def generate_embeddings(all_chunks):
-    return model.encode(all_chunks)
 
 # Initialize FAISS index
 def create_vector_store(embeddings):
@@ -59,7 +54,16 @@ def create_vector_store(embeddings):
     return index_embeddings(embedding_matrix)
 
 # Initialize FAISS index
-def query_vector_store(all_chunks, index, query):
+def query_vector_store(query):
+    # Prepare chunks
+    all_chunks = combine_text_to_chunks()
+    # Generate embeddings for all chunks
+    embeddings = model.encode(all_chunks)
+
+    # Initialize FAISS index
+    embedding_matrix = convert_text_to_embeddings(embeddings)
+    index = index_embeddings(embedding_matrix)
+
     # Query embedding
     query_embedding = model.encode([query])
 
