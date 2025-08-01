@@ -2,7 +2,16 @@ import openai
 
 from config import AZURE_OPENAI_DEPLOYMENT_NAME
 from prompts.developer_prompt import SYSTEM_PROMPT
-from agentic_chatbot_src.rag_tool_faiss import RAGPipeline
+# from agentic_chatbot_src.rag_tool_faiss import RAGPipeline
+import warnings
+
+warnings.warn(
+    "THIS FILE IS DEPRECATED and will be removed in a future release. "
+    "I CREATED THIS FILE TO TEST CHAT FUNCTIONALITY WITH RAG."
+    "LATER IT WAS REPLACED WITH AGENTIC SOLUTION"
+    "PLEASE DO NOT REVIEW IT!!!!!",
+    category=DeprecationWarning,
+    stacklevel=2)
 
 # Initialize conversation history
 conversation_history = [{"role": "system", "content": SYSTEM_PROMPT}]
