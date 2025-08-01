@@ -4,11 +4,13 @@ import requests
 import os
 from bs4 import BeautifulSoup
 
-from PIL import Image
+from PIL import Image, ImageOps
 import pytesseract
 
 from config import DATASOURCE_URL, DATASOURCE_PATH
 
+# Set the path to the Tesseract executable
+pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
 
 # Scrape text content from the specified web pages
 def scrape_web_pages(html_page):
@@ -30,7 +32,7 @@ def scrape_web_pages(html_page):
         table_rows.append(rows)  # Collect rows for this table
 
     # Process image data
-    image_data = extract_images(soup, DATASOURCE_PATH)
+    image_table_rows = extract_images(soup, DATASOURCE_PATH)
 
     # Additional metadata
     metadata = {
@@ -38,7 +40,7 @@ def scrape_web_pages(html_page):
         "table_size": len(table_data)  # Add size of table_data array
     }
 
-    return text_data, table_headers, table_rows, metadata
+    return text_data, table_headers, table_rows, image_table_rows, metadata
 
 
 # Extract all visible text
@@ -106,23 +108,63 @@ def extract_images(soup, base_url):
             absolute_url = urljoin(base_url, src)
             images_metadata.append({"src": absolute_url, "alt": alt, "title": title})
 
-    # images_data = convert_images_to_text(images_metadata)
-    return images_metadata
+    return convert_images_to_text(images_metadata)
 
 
 # Download images (optional)
-# def convert_images_to_text(image_metadata):
-#     extracted_text = {}
-#
-#     for image_data in image_metadata:
-#         # Get the path of the image from the 'src' key
-#         image_path = image_data['src']
-#         try:
-#             # Open the image using PIL
-#             img = Image.open(image_path)
-#             # Use Tesseract to extract text
-#             text = pytesseract.image_to_string(img)
-#             # Store the extracted text with the image's title as the key
-#             extracted_text[image_data['title']] = text
-#         except Exception as e:
-#             print(f"Error reading image {image_path}: {e}")
+def convert_images_to_text(image_metadata):
+    image_text_data = []
+
+    for image_data in image_metadata:
+        # Get the path of the image from the 'src' key
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), ".."))
+        image_path = os.path.normpath(
+            os.path.join(project_root, image_data['src'])
+        )
+        # Check if the file exists
+        if os.path.exists(image_path):
+            # print(f"Found file: {image_path}")
+            try:
+                # Open the image and extract text using pytesseract
+                image = Image.open(image_path)
+                extracted_text = pytesseract.image_to_string(image, lang="eng")
+
+                # Split text into lines
+                lines = extracted_text.splitlines()
+
+                # Split lines into blocks based on uppercase headers
+                blocks = split_into_blocks(lines)
+
+                # Append results
+                image_text_data = image_text_data + blocks
+
+            except Exception as e:
+                print(f"Error processing {image_path}: {e}")
+        else:
+            print(f"File not found: {image_path}")
+
+    return image_text_data
+
+def split_into_blocks(lines):
+    blocks = []  # To store the resulting blocks
+    current_block = []  # To build the current block
+
+    def is_uppercase_header(line):
+        # Check if the line contains at least one word with two or more uppercase letters
+        return any(word.isalpha() and sum(1 for char in word if char.isupper()) > 1 for word in line.split())
+
+    for line in lines:
+        # Check if the line is an uppercase header
+        if is_uppercase_header(line) and current_block:
+            # If a new header is found, save the current block and start a new one
+            blocks.append("\n".join(current_block))
+            current_block = []  # Reset current block
+
+        # Add the current line to the block
+        current_block.append(line)
+
+    # Append the last block if there is any remaining
+    if current_block:
+        blocks.append("\n".join(current_block))
+
+    return blocks

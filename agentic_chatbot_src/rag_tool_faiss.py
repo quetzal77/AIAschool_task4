@@ -42,10 +42,10 @@ def index_embeddings(embedding_matrix):
 # Combine text data and table chunks
 def combine_text_to_chunks():
     html_content = extract_content_from_html()
-    text_data, table_headers, table_rows, metadata = scrape_web_pages(html_content)
+    text_data, table_headers, table_rows, image_table_rows, metadata = scrape_web_pages(html_content)
     # Combine text data and table chunks
     table_chunks = combine_text_and_rows_to_chunks(table_headers, table_rows)
-    all_chunks = text_data + table_chunks
+    all_chunks = text_data + table_chunks + image_table_rows
     return all_chunks
 
 # Initialize FAISS index

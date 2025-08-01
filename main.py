@@ -15,7 +15,7 @@ def main():
 
         # Pass the query to the agent
         response = agent.invoke(query)
-        print(f"Bot: {response}")
+        # print(f"Bot: {response}")
 
 if __name__ == "__main__":
     main()
